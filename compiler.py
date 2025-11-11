@@ -395,15 +395,7 @@ def compile_befunge(befunge: list[list[str]]):
     funge_space = ""
     for y, row in enumerate(befunge):
         for x, instruction in enumerate(row):
-            if (
-                instruction != ' '
-                # y < len(USED_FUNGE_BY_STRING)
-                # and x < len(USED_FUNGE_BY_STRING[0])
-                # and USED_FUNGE_BY_STRING[y][x] != "?"
-            ):
-                funge_space += f".byte {ord(instruction)}\n"
-            else:
-                funge_space += f".byte 0xff\n"
+            funge_space += f".byte {ord(instruction)}\n"
         funge_space += f".byte 0\n"
         funge_space += f".byte 0\n"
 
@@ -509,8 +501,8 @@ def main():
     exe = args.source.with_name(args.source.stem)
     asm.write_text(compiled)
     print("Wrote", asm)
-    subprocess.run(["gcc", asm, "-o", exe, "-s", "-no-pie"], check=True)
-    # subprocess.run(["strip", exe], check=True)
+    subprocess.run(["gcc", asm, "-o", exe, "-no-pie"], check=True)
+
     elf_bytes = bytearray(exe.read_bytes())
     phoff = struct.unpack_from("<Q", elf_bytes, 0x20)[0]
     phnum = struct.unpack_from("<H", elf_bytes, 0x38)[0]

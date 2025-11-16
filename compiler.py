@@ -139,6 +139,8 @@ def write_int():
     lea rdi, format
     xor eax, eax
     call printf
+    mov rdi, stdout
+    call fflush
     mov rsp, r13
     """
 
@@ -421,6 +423,8 @@ def compile_befunge(befunge: list[list[str]]):
     return f"""
     .intel_syntax noprefix
     .extern printf
+    .extern fflush
+    .extern stdout
     .extern rand
 
     .file "compiled.s"

@@ -499,7 +499,7 @@ def main():
     parser.add_argument("source", type=Path)
     args = parser.parse_args()
 
-    parsed = parse_befunge(args.source.read_text())
+    parsed = parse_befunge(args.source.read_text("latin-1"))
     compiled = compile_befunge(parsed)
     asm = args.source.with_suffix(".s")
     exe = args.source.with_name(args.source.stem)

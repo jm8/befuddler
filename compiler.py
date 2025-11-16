@@ -9,6 +9,10 @@ REG_RET_ADDR = "r14"
 WIDTH = 80
 HEIGHT = 25
 
+RED = "\033[31m"
+YELLOW='\033[33m'
+RESET = "\033[0m"
+
 defined_instructions = {}
 
 instruction_names = {}
@@ -344,7 +348,9 @@ def nop():
 
 
 def parse_befunge(source: str):
-    assert "\t" not in source
+    if "\t" in source:
+        print(f"{YELLOW}WARNING:{RESET} tab found in source")
+
     lines = source.splitlines()
     result = [list(line.ljust(WIDTH)) for line in lines]
     result.extend([[" "] * WIDTH] * (HEIGHT - len(result)))
@@ -379,8 +385,6 @@ def compile_befunge(befunge: list[list[str]]):
                 name = "right_edge"
             else:
                 name = instruction_names.get(befunge[i][j])
-                RED = "\033[31m"
-                RESET = "\033[0m"
                 if name:
                     print(f"{RESET}{befunge[i][j]}", end="")
                 else:

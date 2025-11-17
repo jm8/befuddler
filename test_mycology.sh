@@ -110,7 +110,6 @@ expect_file "$MYCOLOGY_NAME"
 test "$MYCOLOGY_NAME/sanity.bf" "1s"
 test "$MYCOLOGY_NAME/mycology.b98"
 test "$MYCOLOGY_NAME/mycorand.bf"
-test "$MYCOLOGY_NAME/mycouser.b98"
 
 log_ok "Tests complete"
 

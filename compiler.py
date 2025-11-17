@@ -278,7 +278,7 @@ def get():
     return f"""
     pop rax # y
     pop rbx # x
-    imul rax, {WIDTH + 2}
+    imul rax, {WIDTH + 4}
     add rax, rbx
     xor rbx, rbx
     mov bl, byte ptr [funge_space + rax]
@@ -293,7 +293,7 @@ def put():
     pop rbx # x
     pop rdx # value
     movzx rdx, dl
-    imul rax, {WIDTH + 2}
+    imul rax, {WIDTH + 4}
     mov rsi, rax
     
     # modify funge space
@@ -327,7 +327,7 @@ def string_mode():
     div rcx
 
     # Get line and char indeces: (rax / WIDTH, rax % WIDTH)
-    mov rcx, {WIDTH + 2}
+    mov rcx, {WIDTH + 4}
     xor rdx, rdx
     div rcx
 
@@ -376,7 +376,7 @@ string_mode_pos_set:
 
     # Set rax to funge space index
     mov rax, rdi
-    mov rcx, {WIDTH + 2}
+    mov rcx, {WIDTH + 4}
     mul rcx
     add rax, rsi
 
@@ -397,7 +397,7 @@ string_mode_pos_set:
 string_mode_end:
     # Jump to correct position
     mov rax, rdi
-    imul rax, {WIDTH + 2}
+    imul rax, {WIDTH + 4}
     add rax, rsi
     imul rax, 10
     add rax, OFFSET program_start
@@ -461,17 +461,17 @@ def compile_befunge(befunge: list[list[str]]):
 
     code_space = ""
 
-    for i in range(-1, HEIGHT + 1):
-        for j in range(-1, WIDTH + 1):
+    for i in range(-2, HEIGHT + 2):
+        for j in range(-2, WIDTH + 2):
             if (i, j) == (0, 0):
                 code_space += "program_start:"
-            if i == -1:
+            if i < 0:
                 name = "top_edge"
-            elif i == HEIGHT:
+            elif i >= HEIGHT:
                 name = "bottom_edge"
-            elif j == -1:
+            elif j < 0:
                 name = "left_edge"
-            elif j == WIDTH:
+            elif j >= WIDTH:
                 name = "right_edge"
             else:
                 name = instruction_names.get(befunge[i][j])
@@ -490,8 +490,7 @@ def compile_befunge(befunge: list[list[str]]):
     for y, row in enumerate(befunge):
         for x, instruction in enumerate(row):
             funge_space += f".byte {ord(instruction)}\n"
-        funge_space += f".byte 0\n"
-        funge_space += f".byte 0\n"
+        funge_space += f".byte 0\n" * 4
 
     instruction_lut = ""
     for i in range(256):
@@ -516,8 +515,8 @@ def compile_befunge(befunge: list[list[str]]):
         # used for quotes
         .quad 10 # right
         .quad -10 # left
-        .quad {(WIDTH + 2) * 10} # down
-        .quad {-(WIDTH + 2) * 10} # up
+        .quad {(WIDTH + 4) * 10} # down
+        .quad {-(WIDTH + 4) * 10} # up
 
     funge_space:
     {funge_space}
@@ -553,14 +552,14 @@ def compile_befunge(befunge: list[list[str]]):
     top_edge:
         pop r14
         sub r14, 5
-        add r14, {((WIDTH + 2) * HEIGHT) * 10}
+        add r14, {((WIDTH + 4) * HEIGHT) * 10}
         push r14
         ret
 
     bottom_edge:
         pop r14
         sub r14, 5
-        sub r14, {((WIDTH + 2) * HEIGHT) * 10}
+        sub r14, {((WIDTH + 4) * HEIGHT) * 10}
         push r14
         ret
 

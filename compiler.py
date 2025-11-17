@@ -276,37 +276,63 @@ def exit():
 @define_instruction("g")
 def get():
     return f"""
-    pop rax # y
-    pop rbx # x
-    imul rax, {WIDTH + 4}
-    add rax, rbx
+    pop rsi # y
+    pop rdi # x
+    call in_range
+    test rax, rax
+    jne get_in_range
+
+    and rsp, 0xfffffffffffffff0
+    lea rdi, error_bad_read
+    xor eax, eax
+    call printf
+    mov rax, 60
+    mov rdi, 1
+    syscall
+    
+get_in_range:
+    imul rsi, {WIDTH + 4}
+    add rsi, rdi
     xor rbx, rbx
-    mov bl, byte ptr [funge_space + rax]
+    mov bl, byte ptr [funge_space + rsi]
     push rbx
     """
-
 
 @define_instruction("p")
 def put():
     return f"""
-    pop rax # y
-    pop rbx # x
+    pop rsi # y
+    pop rdi # x
+
+    call in_range
+    test rax, rax
+    jne put_in_range
+
+    and rsp, 0xfffffffffffffff0
+    lea rdi, error_bad_write
+    xor eax, eax
+    call printf
+    mov rax, 60
+    mov rdi, 1
+    syscall
+put_in_range:
+
     pop rdx # value
     movzx rdx, dl
-    imul rax, {WIDTH + 4}
-    mov rsi, rax
+    imul rsi, {WIDTH + 4}
+    mov rax, rsi
     
     # modify funge space
-    add rax, rbx
-    mov byte ptr [funge_space + rax], dl
+    add rsi, rdi
+    mov byte ptr [funge_space + rsi], dl
 
     # modify instruction
     # get function address
     mov r9, qword ptr [instruction_lut + rdx * 8]
     
-    add rsi, rbx
-    imul rsi, 10
-    lea rcx, [program_start + rsi]
+    add rax, rdi
+    imul rax, 10
+    lea rcx, [program_start + rax]
 
     lea r11, [rcx + 5]
     sub r9, r11
@@ -526,6 +552,10 @@ def compile_befunge(befunge: list[list[str]]):
         .string "%d "
     int_in:
         .string "%d"
+    error_bad_write:
+        .string "ERROR: Attempt to write outside of funge-space\\n"
+    error_bad_read:
+        .string "ERROR: Attempt to read outside of funge-space\\n"
 
     instruction_lut:
     {instruction_lut}
@@ -561,6 +591,21 @@ def compile_befunge(befunge: list[list[str]]):
         sub r14, 5
         sub r14, {((WIDTH + 4) * HEIGHT) * 10}
         push r14
+        ret
+
+    in_range:
+        # check if x=rdi, y=rsi is in range
+        # return iff in range
+        mov rax, 1
+        cmp rdi, {WIDTH}
+        jb x_in_range
+        dec rax
+        jmp in_range_exit
+x_in_range:
+        cmp rsi, {HEIGHT}
+        jb in_range_exit
+        dec rax
+in_range_exit:
         ret
 
     nexti:

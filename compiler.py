@@ -494,20 +494,66 @@ def go_away():
 
 @define_instruction("&")
 def read_int():
-    return f"""
-    pop rsi
-    mov r13, rsp
-    and rsp, 0xfffffffffffffff0
-    sub rsp, 0x10
-    lea rdi, int_in
-    mov rsi, rsp
-    xor eax, eax
-    call scanf
-    mov rax, qword ptr [rsp]
-    mov rsp, r13
-    push rax
-    """
+    return """
+    push r14
+    push r12
+    push 0
 
+skip_whitespace:
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    syscall
+
+    cmp byte ptr [rsp], ' '
+    je skip_whitespace
+    cmp byte ptr [rsp], '\\n'
+    je skip_whitespace
+    cmp byte ptr [rsp], '\\t'
+    je skip_whitespace
+
+    xor r13, r13
+    xor r15, r15
+    cmp byte ptr [rsp], '-'
+    jne read_int_loop
+
+    inc r15 # is negative
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    syscall
+
+read_int_loop:
+    sub byte ptr [rsp], '0'
+    cmp byte ptr [rsp], 9
+    ja int_reading_complete
+
+    mov rax, r13
+    mov rcx, 10
+    imul rcx
+    mov r13, rax
+    movzx rcx, byte ptr [rsp]
+    add r13, rcx
+
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    syscall
+
+    jmp read_int_loop
+int_reading_complete:
+    test r15, r15
+    jz int_not_negative
+    neg r13
+int_not_negative:
+    pop r12
+    pop r12
+    pop r14
+    push r13
+    """
 
 @define_instruction(chr(255))
 def nop():
@@ -585,7 +631,6 @@ program_start:"""
     instr_bytes = 10
 
     return f""".intel_syntax noprefix
-.extern scanf
 
 .file "compiled.s"
 .globl main
@@ -599,8 +644,6 @@ rand_seed:
     .quad 0
 
 .section .rodata
-int_in:
-    .string "%d"
 error_bad_write:
     .string "ERROR: Attempt to write outside of funge-space\\n"
 error_bad_read:

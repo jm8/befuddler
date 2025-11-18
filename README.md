@@ -1,6 +1,6 @@
-# Befunge-93 Compiler
+# Befuddler
 
-Befunge compiler used in the BuckeyeCTF 2025 challenges `rev / befuddled` and `rev / befucked`
+Befunge-93 compiler used in the BuckeyeCTF 2025 challenges `rev / befuddled` and `rev / befucked`
 
 ## Testing
 

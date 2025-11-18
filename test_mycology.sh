@@ -9,7 +9,7 @@ RESET='\e[0m'
 PROMPT="${CYAN}$(basename "$0"):${RESET}"
 
 # other constants
-COMPILER="compiler.py"
+COMPILER="befuddler.py"
 MYCOLOGY_USER="Deewiant"
 MYCOLOGY_NAME="Mycology"
 MYCOLOGY_GITHUB="https://github.com/$MYCOLOGY_USER/$MYCOLOGY_NAME.git"

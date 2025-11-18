@@ -32,7 +32,9 @@ def define_instruction(char):
 
 
 for d in "0123456789":
-    defined_instructions[d] = f"push {d}"
+    defined_instructions[d] = f"""
+    push {d}
+    """
     instruction_names[d] = f"integer{d}"
 
 
@@ -485,19 +487,20 @@ def compile_befunge(befunge: list[list[str]]):
     for char, code in defined_instructions.items():
         name = instruction_names[char]
         instruction_functions += f"""
-        {name}:
-        pop {REG_RET_ADDR}
-        {code}
-        push {REG_RET_ADDR}
-        ret
-        """
+{name}:
+    pop {REG_RET_ADDR}
+{code}
+    push {REG_RET_ADDR}
+    ret
+"""
 
     code_space = ""
 
     for i in range(-2, HEIGHT + 2):
         for j in range(-2, WIDTH + 2):
             if (i, j) == (0, 0):
-                code_space += "program_start:"
+                code_space += f"""
+program_start:"""
             if i < 0:
                 name = "top_edge"
             elif i >= HEIGHT:
@@ -513,119 +516,124 @@ def compile_befunge(befunge: list[list[str]]):
                 else:
                     print(f"{RED}{befunge[i][j]}{RESET}", end="")
             if name:
-                code_space += f"call {name}\n"
+                code_space += f"""
+    call {name}"""
             else:
-                code_space += f"nop\n" * 5
-            code_space += f"call nexti\n"
+                code_space += f"""
+    nop""" * 5
+            code_space += f"""
+    call nexti"""
         print()
 
     funge_space = ""
     for y, row in enumerate(befunge):
         for x, instruction in enumerate(row):
-            funge_space += f".byte {ord(instruction)}\n"
-        funge_space += f".byte 0\n" * 4
+            funge_space += f"""
+    .byte {ord(instruction)}"""
+        funge_space += f"""
+    .byte 0""" * 4
 
     instruction_lut = ""
     for i in range(256):
         function_name = instruction_names.get(chr(i), "nop")
-        instruction_lut += f".quad {function_name}\n"
+        instruction_lut += f"""
+    .quad {function_name}"""
 
     instr_bytes = 10
 
-    return f"""
-    .intel_syntax noprefix
-    .extern printf
-    .extern fflush
-    .extern stdout
+    return f""".intel_syntax noprefix
+.extern printf
+.extern fflush
+.extern stdout
 
-    .file "compiled.s"
-    .globl main
+.file "compiled.s"
+.globl main
 
-    .data
+.data
 
-    direction_deltas:
-        # used for quotes
-        .quad 10 # right
-        .quad -10 # left
-        .quad {(WIDTH + 4) * 10} # down
-        .quad {-(WIDTH + 4) * 10} # up
+direction_deltas:
+    # used for quotes
+    .quad 10 # right
+    .quad -10 # left
+    .quad {(WIDTH + 4) * 10} # down
+    .quad {-(WIDTH + 4) * 10} # up
 
-    funge_space:
-    {funge_space}
+funge_space:
+{funge_space}
 
-    rand_seed:
-        .quad 0
+rand_seed:
+    .quad 0
 
-    .section .rodata
-    int_out:
-        .string "%d "
-    int_in:
-        .string "%d"
-    error_bad_write:
-        .string "ERROR: Attempt to write outside of funge-space\\n"
-    error_bad_read:
-        .string "ERROR: Attempt to read outside of funge-space\\n"
+.section .rodata
+int_out:
+    .string "%d "
+int_in:
+    .string "%d"
+error_bad_write:
+    .string "ERROR: Attempt to write outside of funge-space\\n"
+error_bad_read:
+    .string "ERROR: Attempt to read outside of funge-space\\n"
 
-    instruction_lut:
-    {instruction_lut}
+instruction_lut:
+{instruction_lut}
 
-    .text
+.text
 
-    {instruction_functions}
+{instruction_functions}
 
-    left_edge:
-        pop r14
-        sub r14, 5
-        add r14, {WIDTH * 10}
-        push r14
-        ret
+left_edge:
+    pop r14
+    sub r14, 5
+    add r14, {WIDTH * 10}
+    push r14
+    ret
 
-    right_edge:
-        pop r14
-        sub r14, 5
-        sub r14, {WIDTH * 10}
-        push r14
-        ret
+right_edge:
+    pop r14
+    sub r14, 5
+    sub r14, {WIDTH * 10}
+    push r14
+    ret
 
-    top_edge:
-        pop r14
-        sub r14, 5
-        add r14, {((WIDTH + 4) * HEIGHT) * 10}
-        push r14
-        ret
+top_edge:
+    pop r14
+    sub r14, 5
+    add r14, {((WIDTH + 4) * HEIGHT) * 10}
+    push r14
+    ret
 
-    bottom_edge:
-        pop r14
-        sub r14, 5
-        sub r14, {((WIDTH + 4) * HEIGHT) * 10}
-        push r14
-        ret
+bottom_edge:
+    pop r14
+    sub r14, 5
+    sub r14, {((WIDTH + 4) * HEIGHT) * 10}
+    push r14
+    ret
 
-    in_range:
-        # check if x=rdi, y=rsi is in range
-        # return iff in range
-        mov rax, 1
-        cmp rdi, {WIDTH}
-        jb x_in_range
-        dec rax
-        jmp in_range_exit
+in_range:
+    # check if x=rdi, y=rsi is in range
+    # return iff in range
+    mov rax, 1
+    cmp rdi, {WIDTH}
+    jb x_in_range
+    dec rax
+    jmp in_range_exit
 x_in_range:
-        cmp rsi, {HEIGHT}
-        jb in_range_exit
-        dec rax
+    cmp rsi, {HEIGHT}
+    jb in_range_exit
+    dec rax
 in_range_exit:
-        ret
+    ret
 
-    nexti:
-        pop r14
-        mov rdx, [direction_deltas + {REG_DIRECTION}*8]
-        sub r14, 10
-        add r14, rdx
-        push r14
-    nexti_exit:
-        ret
+nexti:
+    pop r14
+    mov rdx, [direction_deltas + {REG_DIRECTION}*8]
+    sub r14, 10
+    add r14, rdx
+    push r14
+nexti_exit:
+    ret
 
-    main:
+main:
     # Set up rand seed
     mov eax, 1
     cpuid
@@ -641,16 +649,16 @@ in_range_exit:
     or rax, rdx
     jmp seed_in_rax
 
-    has_rdrand:
+has_rdrand:
     rdrand rax
     jmp seed_in_rax
 
-    has_rdseed:
+has_rdseed:
     rdseed rax
 
-    seed_in_rax:
+seed_in_rax:
     mov qword ptr [rand_seed], rax
-    
+
     # Reserve 0x1000 zero bytes on the stack
     sub rsp, 0x1000
     lea rdi, [rsp]
@@ -661,9 +669,8 @@ in_range_exit:
     xor {REG_DIRECTION}, {REG_DIRECTION}
 
     jmp program_start
-
-    {code_space}
-    """
+{code_space}
+"""
 
 
 def main():

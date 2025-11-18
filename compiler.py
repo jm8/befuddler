@@ -109,7 +109,7 @@ def modulo():
     push rdx
     jmp mod_done
 mod_zero:
-    push 0         
+    push 0
 mod_done:
     """
 
@@ -224,12 +224,12 @@ def write_char():
 def get_char():
     return """
     push 0
-    lea rsi, [rsp]       
-    push r14             
+    lea rsi, [rsp]
+    push r14
     push r12
-    mov rax, 0           
-    mov rdi, 0           
-    mov rdx, 1           
+    mov rax, 0
+    mov rdi, 0
+    mov rdx, 1
     syscall
     pop r12
     pop r14
@@ -362,7 +362,6 @@ def put():
     call print_error_and_exit
 
 put_in_range:
-
     pop rdx # value
     movzx rdx, dl
     imul rsi, {WIDTH + 4}
@@ -375,7 +374,7 @@ put_in_range:
     # modify instruction
     # get function address
     mov r9, qword ptr [instruction_lut + rdx * 8]
-    
+
     add rax, rdi
     imul rax, 10
     lea rcx, [program_start + rax]
@@ -554,6 +553,7 @@ int_not_negative:
     pop r14
     push r13
     """
+
 
 @define_instruction(chr(255))
 def nop():

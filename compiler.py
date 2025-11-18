@@ -551,13 +551,6 @@ program_start:"""
 
 .data
 
-direction_deltas:
-    # used for quotes
-    .quad 10 # right
-    .quad -10 # left
-    .quad {(WIDTH + 4) * 10} # down
-    .quad {-(WIDTH + 4) * 10} # up
-
 funge_space:
 {funge_space}
 
@@ -573,6 +566,13 @@ error_bad_write:
     .string "ERROR: Attempt to write outside of funge-space\\n"
 error_bad_read:
     .string "ERROR: Attempt to read outside of funge-space\\n"
+
+direction_deltas:
+    # used for quotes
+    .quad 10 # right
+    .quad -10 # left
+    .quad {(WIDTH + 4) * 10} # down
+    .quad {-(WIDTH + 4) * 10} # up
 
 instruction_lut:
 {instruction_lut}

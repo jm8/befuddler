@@ -140,15 +140,67 @@ def greater_than():
 @define_instruction(".")
 def write_int():
     return """
-    pop rsi
+    pop rax
+
+    push r14
+    push r12
     mov r13, rsp
-    and rsp, 0xfffffffffffffff0
-    lea rdi, int_out
-    xor eax, eax
-    call printf
-    mov rdi, stdout
-    call fflush
+    mov rsi, 1
+    dec rsp
+    mov byte ptr [rsp], ' '
+
+    test rax, rax
+    jnz not_zero
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '0'
+    jmp number_built
+not_zero:
+    mov rcx, 10
+    cqo
+    idiv rcx
+
+    test rax, rax
+    jz last_digit
+    test rdx, rdx
+    jge digit_positive
+    neg rdx
+digit_positive:
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+    jmp not_zero
+   
+last_digit:
+    test rdx, rdx
+    jge last_digit_positive
+    neg rdx
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '-'
+    jmp number_built
+    
+last_digit_positive:
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+    
+number_built:
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, rsi
+    lea rsi, [rsp]
+    syscall
+
     mov rsp, r13
+    pop r12
+    pop r14
     """
 
 
@@ -286,12 +338,8 @@ def get():
 
     and rsp, 0xfffffffffffffff0
     lea rdi, error_bad_read
-    xor eax, eax
-    call printf
-    mov rax, 60
-    mov rdi, 1
-    syscall
-    
+    call print_error_and_exit
+  
 get_in_range:
     imul rsi, {WIDTH + 4}
     add rsi, rdi
@@ -313,11 +361,8 @@ def put():
 
     and rsp, 0xfffffffffffffff0
     lea rdi, error_bad_write
-    xor eax, eax
-    call printf
-    mov rax, 60
-    mov rdi, 1
-    syscall
+    call print_error_and_exit
+
 put_in_range:
 
     pop rdx # value
@@ -542,7 +587,7 @@ program_start:"""
     instr_bytes = 10
 
     return f""".intel_syntax noprefix
-.extern printf
+.extern scanf
 .extern fflush
 .extern stdout
 
@@ -558,8 +603,6 @@ rand_seed:
     .quad 0
 
 .section .rodata
-int_out:
-    .string "%d "
 int_in:
     .string "%d"
 error_bad_write:
@@ -632,6 +675,26 @@ nexti:
     push r14
 nexti_exit:
     ret
+
+print_error_and_exit:
+    # assume error in rdi
+    mov rsi, rdi
+continue_printing_error:
+    mov al, byte ptr [rsi]
+    test al, al
+    jz exit_with_error
+
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, 1
+    syscall
+
+    inc rsi
+    jmp continue_printing_error
+exit_with_error:
+    mov rax, 60
+    mov rdi, 1
+    syscall
 
 main:
     # Set up rand seed

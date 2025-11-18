@@ -671,7 +671,6 @@ nexti:
     sub r14, 10
     add r14, rdx
     push r14
-nexti_exit:
     ret
 
 print_error_and_exit:

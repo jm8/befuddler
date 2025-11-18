@@ -4,7 +4,11 @@ Befunge-93 compiler used in the BuckeyeCTF 2025 challenges `rev / befuddled` and
 
 ## Debugger
 
-There is a debugger that allows you to watch the funge space and the cursor as the program executes. To use it, first compile your program
+There is a debugger that allows you to watch the funge space and the cursor as the program executes.
+
+[Screencast From 2025-11-18 14-08-10.webm](https://github.com/user-attachments/assets/1f13ce28-ba40-45f0-9967-54f2e87ea8a4)
+
+To use it, first compile your program
 
 ```sh
 ./befuddler.py examples/hello_world.bf

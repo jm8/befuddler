@@ -2,6 +2,18 @@
 
 Befunge-93 compiler used in the BuckeyeCTF 2025 challenges `rev / befuddled` and `rev / befucked`
 
+## Usage
+
+```sh
+./befuddler.py [--width WIDTH] [--height HEIGHT] [--fit_size] [--b98] source
+```
+
+The standard compiler is the Befunge-93 compiler, however some limited Befunge-98 is supported (WIP).
+
+With the `--b98` flag, the funge-space is still a fixed space, however it can be changed with the other flags.
+
+`--fit_size` will fit the size to the maximum character and line in the source file.
+
 ## Debugger
 
 There is a debugger that allows you to watch the funge space and the cursor as the program executes.
@@ -25,6 +37,8 @@ And in another terminal run the python script which watches the gdb logs (`gdb.t
 ```
 
 Step through the program using `c` in the gdb terminal.
+
+The debugger currently only supports Befunge-93.
 
 ## Testing
 

@@ -79,9 +79,16 @@ function test {
 
   log_ok "Compiling..."
 
-  if ! ./$COMPILER "$FILE"; then
-    log_err "Failed to compile \`$FILE\`"
-    return 1
+  if [[ "$FILE" == *.bf ]]; then
+    if ! ./$COMPILER "$FILE"; then
+      log_err "Failed to compile \`$FILE\`"
+      return 1
+    fi
+  else
+    if ! ./$COMPILER --b98 --fit_size "$FILE"; then
+      log_err "Failed to compile \`$FILE\`"
+      return 1
+    fi
   fi
 
   log_ok "Running program..."
@@ -109,7 +116,7 @@ expect_file "$MYCOLOGY_NAME"
 
 test "$MYCOLOGY_NAME/sanity.bf" "1s"
 test "$MYCOLOGY_NAME/mycology.b98"
-test "$MYCOLOGY_NAME/mycorand.bf"
+test "$MYCOLOGY_NAME/mycorand.bf" "1s"
 
 log_ok "Tests complete"
 

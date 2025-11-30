@@ -495,44 +495,7 @@ skip_p:
     mov rsi, rdx # char
 
 string_mode_loop:
-    cmp {REG_DIRECTION}, {DIR_RIGHT}
-    jne string_mode_dir_not_right
-
-    inc rsi
-    cmp rsi, {self.width}
-    jne string_mode_pos_set
-    mov rsi, 0
-
-    jmp string_mode_pos_set
-string_mode_dir_not_right:
-    cmp {REG_DIRECTION}, {DIR_LEFT}
-    jne string_mode_dir_up_or_down
-
-    dec rsi
-    cmp rsi, -1
-    jne string_mode_pos_set
-    mov rsi, {self.width - 1}
-
-    jmp string_mode_pos_set
-string_mode_dir_up_or_down:
-    cmp {REG_DIRECTION}, {DIR_DOWN}
-    jne string_mode_dir_up
-
-    inc rdi
-
-    cmp rdi, {self.height}
-    jne string_mode_pos_set
-    mov rdi, 0
-
-    jmp string_mode_pos_set
-string_mode_dir_up:
-
-    dec rdi
-    cmp rdi, -1
-    jne string_mode_pos_set
-    mov rdi, {self.height - 1}
-
-string_mode_pos_set:
+    call update_line_char
 
     # Set rax to funge space index
     mov rax, rdi
@@ -757,44 +720,7 @@ dont_turn:
     mov rsi, rdx # char
 
 jump_over_loop:
-    cmp {REG_DIRECTION}, {DIR_RIGHT}
-    jne jump_over_dir_not_right
-
-    inc rsi
-    cmp rsi, {self.width}
-    jne jump_over_pos_set
-    mov rsi, 0
-
-    jmp jump_over_pos_set
-jump_over_dir_not_right:
-    cmp {REG_DIRECTION}, {DIR_LEFT}
-    jne jump_over_dir_up_or_down
-
-    dec rsi
-    cmp rsi, -1
-    jne jump_over_pos_set
-    mov rsi, {self.width - 1}
-
-    jmp jump_over_pos_set
-jump_over_dir_up_or_down:
-    cmp {REG_DIRECTION}, {DIR_DOWN}
-    jne jump_over_dir_up
-
-    inc rdi
-
-    cmp rdi, {self.height}
-    jne jump_over_pos_set
-    mov rdi, 0
-
-    jmp jump_over_pos_set
-jump_over_dir_up:
-
-    dec rdi
-    cmp rdi, -1
-    jne jump_over_pos_set
-    mov rdi, {self.height - 1}
-
-jump_over_pos_set:
+    call update_line_char
 
     # Set rax to funge space index
     mov rax, rdi
@@ -866,44 +792,7 @@ run_iterate:
     mov rsi, rdx # char
 
 iterate_bad_char_or_skips:
-    cmp {REG_DIRECTION}, {DIR_RIGHT}
-    jne iterate_dir_not_right
-
-    inc rsi
-    cmp rsi, {self.width}
-    jne iterate_pos_set
-    mov rsi, 0
-
-    jmp iterate_pos_set
-iterate_dir_not_right:
-    cmp {REG_DIRECTION}, {DIR_LEFT}
-    jne iterate_dir_up_or_down
-
-    dec rsi
-    cmp rsi, -1
-    jne iterate_pos_set
-    mov rsi, {self.width - 1}
-
-    jmp iterate_pos_set
-iterate_dir_up_or_down:
-    cmp {REG_DIRECTION}, {DIR_DOWN}
-    jne iterate_dir_up
-
-    inc rdi
-
-    cmp rdi, {self.height}
-    jne iterate_pos_set
-    mov rdi, 0
-
-    jmp iterate_pos_set
-iterate_dir_up:
-
-    dec rdi
-    cmp rdi, -1
-    jne iterate_pos_set
-    mov rdi, {self.height - 1}
-
-iterate_pos_set:
+    call update_line_char
 
     # Set rax to funge space index
     mov rax, rdi

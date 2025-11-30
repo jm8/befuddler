@@ -8,6 +8,11 @@ from instruction_loader import InstructionLoader
 REG_DIRECTION = "r12"
 REG_RET_ADDR = "r14"
 
+DIR_RIGHT = 0
+DIR_DOWN = 1
+DIR_LEFT = 2
+DIR_UP = 3
+
 DEFAULT_WIDTH = 80
 DEFAULT_HEIGHT = 25
 
@@ -204,6 +209,47 @@ exit_with_error:
     mov rax, 60
     mov rdi, 1
     syscall
+
+update_line_char:
+    # assume line and char in rdi and rsi
+    cmp {REG_DIRECTION}, {DIR_RIGHT}
+    jne update_line_char_dir_not_right
+
+    inc rsi
+    cmp rsi, {width}
+    jne line_char_updated
+    mov rsi, 0
+
+    jmp line_char_updated
+update_line_char_dir_not_right:
+    cmp {REG_DIRECTION}, {DIR_LEFT}
+    jne update_line_char_dir_up_or_down
+
+    dec rsi
+    cmp rsi, -1
+    jne line_char_updated
+    mov rsi, {width - 1}
+
+    jmp line_char_updated
+update_line_char_dir_up_or_down:
+    cmp {REG_DIRECTION}, {DIR_DOWN}
+    jne update_line_char_dir_up
+
+    inc rdi
+
+    cmp rdi, {height}
+    jne line_char_updated
+    mov rdi, 0
+
+    jmp line_char_updated
+update_line_char_dir_up:
+
+    dec rdi
+    cmp rdi, -1
+    jne line_char_updated
+    mov rdi, {height - 1}
+line_char_updated:
+    ret
 
 main:
     # Set up rand seed

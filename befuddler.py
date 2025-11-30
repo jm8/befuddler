@@ -252,7 +252,7 @@ line_char_updated:
     ret
 
 main:
-    # Set up rand seed
+    # set up rand seed
     mov eax, 1
     cpuid
 
@@ -277,10 +277,10 @@ has_rdseed:
 seed_in_rax:
     mov qword ptr [rand_seed], rax
 
-    # Save rsp
+    # save rsp
     mov rbp, rsp
 
-    # Reserve 0x1000 zero bytes on the stack
+    # reserve 0x1000 zero bytes on the stack
     sub rsp, 0x1000
     lea rdi, [rsp]
     mov rcx, 0x1000

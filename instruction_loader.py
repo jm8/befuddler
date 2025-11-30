@@ -479,14 +479,14 @@ skip_p:
     @define_instruction('"')
     def string_mode(self):
         return f"""
-    # Compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - program_start) / 10
     mov rax, r14
     sub rax, OFFSET program_start
     mov rcx, 10
     xor rdx, rdx
     div rcx
 
-    # Get line and char indeces: (rax / self.width, rax % self.width)
+    # get line and char indeces: (rax / self.width, rax % self.width)
     mov rcx, {self.width + 4}
     xor rdx, rdx
     div rcx
@@ -497,28 +497,28 @@ skip_p:
 string_mode_loop:
     call update_line_char
 
-    # Set rax to funge space index
+    # set rax to funge space index
     mov rax, rdi
     mov rcx, {self.width + 4}
     mul rcx
     add rax, rsi
 
-    # Load character from funge_space[rax]
+    # load character from funge_space[rax]
     mov cl, byte ptr [funge_space + rax]
 
-    # If '"', end string mode
+    # if '"', end string mode
     cmp cl, '"'
     je string_mode_end
 
-    # Otherwise, push the character value
+    # otherwise, push the character value
     movsx rdx, cl
     push rdx
 
-    # Continue loop
+    # continue loop
     jmp string_mode_loop
 
 string_mode_end:
-    # Jump to correct position
+    # jump to correct position
     mov rax, rdi
     imul rax, {self.width + 4}
     add rax, rsi
@@ -704,14 +704,14 @@ dont_turn:
     @b98
     def jump_over(self):
         return f"""
-    # Compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - program_start) / 10
     mov rax, r14
     sub rax, OFFSET program_start
     mov rcx, 10
     xor rdx, rdx
     div rcx
 
-    # Get line and char indeces: (rax / self.width, rax % self.width)
+    # get line and char indeces: (rax / self.width, rax % self.width)
     mov rcx, {self.width + 4}
     xor rdx, rdx
     div rcx
@@ -722,24 +722,24 @@ dont_turn:
 jump_over_loop:
     call update_line_char
 
-    # Set rax to funge space index
+    # set rax to funge space index
     mov rax, rdi
     mov rcx, {self.width + 4}
     mul rcx
     add rax, rsi
 
-    # Load character from funge_space[rax]
+    # load character from funge_space[rax]
     mov cl, byte ptr [funge_space + rax]
 
-    # If ';', end jump over
+    # if ';', end jump over
     cmp cl, ';'
     je jump_over_end
 
-    # Continue loop
+    # continue loop
     jmp jump_over_loop
 
 jump_over_end:
-    # Jump to correct position
+    # jump to correct position
     mov rax, rdi
     imul rax, {self.width + 4}
     add rax, rsi
@@ -783,7 +783,7 @@ run_iterate:
     xor rdx, rdx
     div rcx
 
-    # Get line and char indeces: (rax / self.width, rax % self.width)
+    # get line and char indeces: (rax / self.width, rax % self.width)
     mov rcx, {self.width + 4}
     xor rdx, rdx
     div rcx
@@ -794,7 +794,7 @@ run_iterate:
 iterate_bad_char_or_skips:
     call update_line_char
 
-    # Set rax to funge space index
+    # set rax to funge space index
     mov rax, rdi
     mov rcx, {self.width + 4}
     mul rcx
@@ -803,7 +803,7 @@ iterate_bad_char_or_skips:
     test r8, r8
     jnz keep_skipping
 
-    # Load character from funge_space[rax]
+    # load character from funge_space[rax]
     mov cl, byte ptr [funge_space + rax]
     cmp cl, ' '
     je iterate_bad_char_or_skips
@@ -819,7 +819,7 @@ keep_skipping:
     dec r10
     jnz iterate_bad_char_or_skips
 
-    # Jump to correct position
+    # jump to correct position
     mov rax, rdi
     imul rax, {self.width + 4}
     add rax, rsi
@@ -855,7 +855,7 @@ end_iterate:
         return f"""
     mov rsp, rbp
 
-    # Reserve 0x1000 zero bytes on the stack
+    # reserve 0x1000 zero bytes on the stack
     sub rsp, 0x1000
     lea rdi, [rsp]
     mov rcx, 0x1000
@@ -867,14 +867,14 @@ end_iterate:
     @b98
     def push_char(self):
         return f"""
-    # Compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - program_start) / 10
     mov rax, r14
     sub rax, OFFSET program_start
     mov rcx, 10
     xor rdx, rdx
     div rcx
 
-    # Get line and char indeces: (rax / self.width, rax % self.width)
+    # get line and char indeces: (rax / self.width, rax % self.width)
     mov rcx, {self.width + 4}
     xor rdx, rdx
     div rcx
@@ -884,20 +884,20 @@ end_iterate:
 
     call update_line_char
 
-    # Set rax to funge space index
+    # set rax to funge space index
     mov rax, rdi
     mov rcx, {self.width + 4}
     mul rcx
     add rax, rsi
 
-    # Load character from funge_space[rax]
+    # load character from funge_space[rax]
     mov cl, byte ptr [funge_space + rax]
 
-    # Push the character value
+    # push the character value
     movsx rdx, cl
     push rdx
 
-    # Jump to correct position
+    # jump to correct position
     mov rdx, [direction_deltas + {REG_DIRECTION}*8]
     shl rdx, 1
     sub r14, 5
@@ -909,14 +909,14 @@ end_iterate:
     @b98
     def store_char(self):
         return f"""
-    # Compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - program_start) / 10
     mov rax, r14
     sub rax, OFFSET program_start
     mov rcx, 10
     xor rdx, rdx
     div rcx
 
-    # Get line and char indeces: (rax / self.width, rax % self.width)
+    # get line and char indeces: (rax / self.width, rax % self.width)
     mov rcx, {self.width + 4}
     xor rdx, rdx
     div rcx
@@ -926,18 +926,18 @@ end_iterate:
 
     call update_line_char
 
-    # Set rax to funge space index
+    # set rax to funge space index
     mov rax, rdi
     mov rcx, {self.width + 4}
     mul rcx
     add rax, rsi
 
-    # Modify funge space
+    # modify funge space
     pop rdx # value
     movzx rdx, dl
     mov byte ptr [funge_space + rax], dl
 
-    # Jump to correct position
+    # jump to correct position
     mov rdx, [direction_deltas + {REG_DIRECTION}*8]
     shl rdx, 1
     sub r14, 5

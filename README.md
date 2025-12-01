@@ -58,6 +58,14 @@ On either side and above and below the grid, there are two layers of extraneous 
 
 The "true" funge-space is still stored somewhere in memory, as must be the case for properly functioning `g`, `p`, and `"` instructions. However, it is only referenced for these instructions, and the rest are compiled. Using the `p` instruction only requires overwriting a single 5-byte jump instruction. To improve efficiency of the implementation of some instructions, each line in the funge-space is padded with bytes corresponding to the extraneous jump instructions in the text segment.
 
+### Fingerprints
+
+Fingerprints in the Befunge-98 mode currently have limited support.
+
+The way they work, unlike other instructions, is that their functions use a lookup table of the current pointers to the relevant functions. Every time a fingerprint is loaded, it replaces elements of that lookup table.
+
+The `)` instruction currently always reflects after popping off the arguments. `(` just replaces whatever it needs in the current lookup table.
+
 ## Known Limitations
 
 To implement popping `0` from the stack when it is empty, we simply push a large number of zero bytes onto the stack at the start of each program. This may make generated programs vulnerable to stack smashing attacks.

@@ -13,6 +13,9 @@ DIR_DOWN = 1
 DIR_LEFT = 2
 DIR_UP = 3
 
+MAX_FINGERPRINT_LEN = 8
+MAX_INPUT_LEN = 32
+
 DEFAULT_WIDTH = 80
 DEFAULT_HEIGHT = 25
 
@@ -102,6 +105,57 @@ program_start:"""
         instruction_lut += f"""
     .quad {function_name}"""
 
+    if b98:
+        semantic_lut = f"""
+    .quad reflect""" * 26
+        fingerprint_table = ""
+        fingerprint_sections = ""
+        for fingerprint_id, functions in instruction_loader.fingerprints.items():
+            fingerprint_sections += f"""
+{fingerprint_id}:"""
+
+            fingerprint_table += f"""
+    .ascii "{fingerprint_id}"
+    .zero {MAX_FINGERPRINT_LEN - len(fingerprint_id)}
+    .quad {fingerprint_id}
+            """
+            for char, name, code in functions:
+                fingerprint_sections += f"""
+    .quad {ord(char) - ord('A')}
+    .quad {name}
+"""
+
+                instruction_functions += f"""
+{name}:
+    pop {REG_RET_ADDR}
+{code}
+    push {REG_RET_ADDR}
+    ret
+"""
+            fingerprint_sections += f"""
+    .quad -1
+"""
+        fingerprint_table += f"""
+    .zero {MAX_FINGERPRINT_LEN}
+"""
+
+        input_buf = f"""
+    .zero {MAX_INPUT_LEN}"""
+        b98_data = f"""
+input_buf:
+{input_buf}
+
+{fingerprint_sections}
+
+fingerprint_table:
+{fingerprint_table}
+
+semantic_lut:
+{semantic_lut}
+"""
+    else:
+        b98_data = f""
+
     return f""".intel_syntax noprefix
 
 .file "compiled.s"
@@ -112,8 +166,14 @@ program_start:"""
 funge_space:
 {funge_space}
 
+{b98_data}
+
 rand_seed:
     .quad 0
+
+    # in data section for b98 fingerprint overriding
+instruction_lut:
+{instruction_lut}
 
 .section .rodata
 error_bad_write:
@@ -127,9 +187,6 @@ direction_deltas:
     .quad {(width + 4) * 10} # down
     .quad -10 # left
     .quad {-(width + 4) * 10} # up
-
-instruction_lut:
-{instruction_lut}
 
 .text
 

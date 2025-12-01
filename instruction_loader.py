@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 REG_DIRECTION = "r12"
 REG_RET_ADDR = "r14"
 
@@ -6,9 +8,19 @@ DIR_DOWN = 1
 DIR_LEFT = 2
 DIR_UP = 3
 
+MAX_FINGERPRINT_LEN = 8
+MAX_INPUT_LEN = 32
+
 def define_instruction(char):
     def decorator(f):
         f._instruction_name = char
+        return f
+    return decorator
+
+
+def fingerprint(id):
+    def decorator(f):
+        f._fingerprint_id = id
         return f
     return decorator
 
@@ -32,16 +44,32 @@ class InstructionLoader:
         self.defined_instructions = {}
         self.instruction_names = {}
 
+        self.fingerprints = defaultdict(list)
+
         self.integer_instructions()
         self.general_instructions()
+        if b98:
+            self.build_semantics()
+            self.set_fingerprints()
 
 
     def integer_instructions(self):
         for d in ("0123456789abcdef" if self.b98 else "0123456789"):
             self.defined_instructions[d] = f"""
-            push 0x{d}
-            """
+    push 0x{d}
+"""
             self.instruction_names[d] = f"integer_{d}"
+
+
+    def build_semantics(self):
+        for i in range(26):
+            c = chr(ord('A') + i)
+            self.defined_instructions[c] = f"""
+    push r14
+    mov rdx, {i}
+    jmp [semantic_lut + rdx * 8]
+"""
+            self.instruction_names[c] = f"semantic_{c}"
 
 
     def general_instructions(self):
@@ -49,7 +77,9 @@ class InstructionLoader:
             attr = getattr(self, name)
             if hasattr(attr, "_instruction_name"):
                 include = True
-                if getattr(attr, "_b98", False) and not b98:
+                if hasattr(attr, "_fingerprint_id"):
+                    include = False
+                elif getattr(attr, "_b98", False) and not b98:
                     include = False
                 elif getattr(attr, "_b93", False) and b98:
                     include = False
@@ -57,6 +87,15 @@ class InstructionLoader:
                 if include:
                     self.instruction_names[attr._instruction_name] = name
                     self.defined_instructions[attr._instruction_name] = attr()
+
+
+    def set_fingerprints(self):
+        for name in dir(self):
+            attr = getattr(self, name)
+            if hasattr(attr, "_fingerprint_id"):
+                self.fingerprints[attr._fingerprint_id].append(
+                    (attr._instruction_name, name, attr())
+                )
 
           
     @define_instruction("+")
@@ -710,16 +749,68 @@ int_not_negative:
     def load_semantics(self):
         return f"""
     pop rdi
+    xor rdx, rdx # index
 load_semantic:
-    test rdi, rdi
-    # always fail
-    jz semantic_load_fail
+    cmp rdi, rdx
+    je semantic_in_buf
     pop rsi
-    dec rdi
+    cmp rdx, {MAX_FINGERPRINT_LEN}
+    jg wrote_max_semantic_len
+    je null_terminate_semantic
+    movzx rsi, sil
+    mov byte ptr [input_buf + rdx], sil
+    jmp wrote_max_semantic_len
+null_terminate_semantic:
+    mov byte ptr [input_buf + rdx], 0
+wrote_max_semantic_len:
+    inc rdx
     jmp load_semantic
-semantic_load_fail:
+semantic_in_buf:
+    xor rdi, rdi # fingerprint_table idx
+search_fingerprint_table:
+    shl rdi, 1
+    lea rsi, [fingerprint_table + rdi * 8]
+    shr rdi, 1
+    cmp byte ptr [rsi], 0
+    je load_semantic_fail
+    xor rdx, rdx # char idx
+
+compare_fingerprint_ids:
+    mov cl, byte ptr [input_buf + rdx]
+    mov r9b, byte ptr [rsi]
+    cmp cl, r9b
+    jne load_semantic_fail
+    test cl, cl
+    jz load_semantic_match_found
+
+    inc rdx
+    inc rsi
+    jmp compare_fingerprint_ids
+
+    inc rdi
+    jmp search_fingerprint_table
+
+load_semantic_match_found:
+    # load section into rsi
+    shl rdi, 1
+    lea rsi, [fingerprint_table + rdi * 8]
+    mov rsi, [rsi + 8]
+
+    # process semantic section
+keep_loading_semantic:
+    mov rcx, qword ptr [rsi]
+    cmp rcx, -1
+    je load_semantic_end
+    add rsi, 8
+    mov rdi, [rsi]
+    mov qword ptr [semantic_lut + rcx * 8], rdi
+    add rsi, 8
+    jmp keep_loading_semantic
+
+load_semantic_fail:
     add {REG_DIRECTION}, 2
     and {REG_DIRECTION}, 3
+load_semantic_end:
     """
 
 
@@ -1102,4 +1193,109 @@ jumping_done:
     add rax, 5
     mov r14, rax
 skip_jumping:
+    """
+
+    @fingerprint("BOOL")
+    @define_instruction("A")
+    def bool_and(self):
+        return f"""
+        pop rdi
+        pop rsi
+        and rdi, rsi
+        not rdi
+        not rdi
+        push rdi
+    """
+
+
+    @fingerprint("BOOL")
+    @define_instruction("N")
+    def bool_not(self):
+        return f"""
+        pop rdi
+        not rdi
+        push rdi
+    """
+
+
+    @fingerprint("BOOL")
+    @define_instruction("O")
+    def bool_or(self):
+        return f"""
+        pop rdi
+        pop rsi
+        or rdi, rsi
+        not rdi
+        not rdi
+        push rdi
+    """
+
+
+    @fingerprint("BOOL")
+    @define_instruction("X")
+    def bool_xor(self):
+        return f"""
+        pop rdi
+        pop rsi
+        xor rdi, rsi
+        not rdi
+        not rdi
+        push rdi
+    """
+
+
+    @fingerprint("RAND")
+    @define_instruction("I")
+    def rand_get_rand(self):
+        return f"""
+    pop rdi
+    mov rax, qword ptr [rand_seed]
+    mov rdx, 1103515245
+    mul rdx
+    add rax, 12345
+    mov qword ptr [rand_seed], rax
+    cqo
+    idiv rdi
+    push rdx
+    """
+
+    
+    @fingerprint("RAND")
+    @define_instruction("M")
+    def rand_get_max(self):
+        return f"""
+    xor rdi, rdi
+    dec rdi
+    shr rdi, 1
+    push rdi
+    """
+
+
+    @fingerprint("RAND")
+    @define_instruction("R")
+    def rand_get_fpsp_rand(self):
+        return f"""
+    # NOT SUPPORTED ; REFLECT
+    add {REG_DIRECTION}, 2
+    and {REG_DIRECTION}, 3
+    """
+
+
+    @fingerprint("RAND")
+    @define_instruction("S")
+    def rand_seed_rand(self):
+        return f"""
+    pop rax
+    mov qword ptr [rand_seed], rax
+    """
+
+
+    @fingerprint("RAND")
+    @define_instruction("T")
+    def rand_seed_rand_time(self):
+        return f"""
+    rdtsc
+    shl rdx, 32
+    or rax, rdx
+    mov qword ptr [rand_seed], rax
     """

@@ -398,7 +398,7 @@ vertical_if_done:
 
     @define_instruction("g")
     @b93
-    def get(self):
+    def get_b93(self):
         return f"""
     pop rsi # y
     pop rdi # x
@@ -420,7 +420,7 @@ get_in_range:
 
     @define_instruction("g")
     @b98
-    def get(self):
+    def get_b98(self):
         return f"""
     pop rsi # y
     pop rdi # x
@@ -444,7 +444,7 @@ skip_g:
 
     @define_instruction("p")
     @b93
-    def put(self):
+    def put_b93(self):
         return f"""
     pop rsi # y
     pop rdi # x
@@ -484,7 +484,7 @@ put_in_range:
 
     @define_instruction("p")
     @b98
-    def put(self):
+    def put_b98(self):
         return f"""
     pop rsi # y
     pop rdi # x
@@ -526,7 +526,7 @@ skip_p:
 
     @define_instruction('"')
     @b93
-    def string_mode(self):
+    def string_mode_b93(self):
         return f"""
     # compute cell index: (r14 - program_start) / 10
     mov rax, r14
@@ -580,7 +580,7 @@ string_mode_end:
 
     @define_instruction('"')
     @b98
-    def string_mode(self):
+    def string_mode_b98(self):
         return f"""
     # compute cell index: (r14 - program_start) / 10
     mov rax, r14

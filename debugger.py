@@ -32,8 +32,7 @@ def render():
         end = start + width
         script.append(
             "".join(
-                #" " if not 32 <= c <= 127 else chr(c) for c in funge_space[start:end]
-                "T" for c in funge_space[start:end]
+                " " if not 32 <= c <= 127 else chr(c) for c in funge_space[start:end]
             )
         )
 

@@ -64,6 +64,11 @@ The way they work, unlike other instructions, is that their functions use a look
 
 The `)` instruction currently always reflects after popping off the arguments. `(` just replaces whatever it needs in the current lookup table.
 
+Current fingerprints:
+ - `BOOL`
+ - `RAND` (`R` not supported due to lack of `FPSP`)
+ - `BASE`
+
 ## Known Limitations
 
 To implement popping `0` from the stack when it is empty, we simply push a large number of zero bytes onto the stack at the start of each program. This may make generated programs vulnerable to stack smashing attacks.

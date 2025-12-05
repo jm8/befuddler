@@ -1726,3 +1726,318 @@ y_1_exclude:
     or rax, rdx
     mov qword ptr [rand_seed], rax
     """
+
+
+    @fingerprint("BASE")
+    @define_instruction("B")
+    def base_write_binary_int(self):
+        return f"""
+    pop rax
+
+    push r14
+    push r12
+    mov r13, rsp
+    mov rsi, 1
+    dec rsp
+    mov byte ptr [rsp], ' '
+
+    test rax, rax
+    jnz B_not_zero
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '0'
+    jmp B_number_built
+B_not_zero:
+    mov rdx, rax
+    shr rax, 1
+    and rdx, 1
+
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+
+    test rax, rax
+    jne B_not_zero
+
+B_number_built:
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, rsi
+    lea rsi, [rsp]
+    push r11
+    syscall
+    pop r11
+
+    mov rsp, r13
+    pop r12
+    pop r14
+    """
+
+
+    @fingerprint("BASE")
+    @define_instruction("H")
+    def base_write_hex_int(self):
+        return f"""
+    pop rax
+
+    push r14
+    push r12
+    mov r13, rsp
+    mov rsi, 1
+    dec rsp
+    mov byte ptr [rsp], ' '
+
+    test rax, rax
+    jnz H_not_zero
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '0'
+    jmp H_number_built
+H_not_zero:
+    mov rdx, rax
+    and rdx, {0b1111}
+    shr rax, 4
+
+    dec rsp
+    inc rsi
+    cmp rdx, 9
+    jg H_is_letter
+    add rdx, '0'
+    jmp H_char_is_ready
+H_is_letter:
+    add rdx, {ord('A') - 10}
+H_char_is_ready:
+    mov byte ptr [rsp], dl
+
+    test rax, rax
+    jne H_not_zero
+H_number_built:
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, rsi
+    lea rsi, [rsp]
+    push r11
+    syscall
+    pop r11
+
+    mov rsp, r13
+    pop r12
+    pop r14
+    """
+
+
+    @fingerprint("BASE")
+    @define_instruction("I")
+    def base_read_int_in_base(self):
+        return f"""
+    pop rcx # base
+    movzx rcx, cl
+
+    push r14
+    push r12
+    push r11
+    push 0
+    
+I_skip_whitespace:
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    push rcx
+    syscall
+    pop rcx
+
+    cmp byte ptr [rsp], ' '
+    je I_skip_whitespace
+    cmp byte ptr [rsp], '\\n'
+    je I_skip_whitespace
+    cmp byte ptr [rsp], '\\t'
+    je I_skip_whitespace
+
+    xor r13, r13
+    xor r15, r15
+    cmp byte ptr [rsp], '-'
+    jne I_read_int_loop
+
+    inc r15 # is negative
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    push rcx
+    syscall
+    pop rcx
+
+I_read_int_loop:
+    cmp byte ptr [rsp], '9'
+    ja I_not_digit
+    cmp byte ptr [rsp], '0'
+    jb I_not_digit
+    sub byte ptr [rsp], '0'
+    jmp I_digit_read
+I_not_digit:
+    cmp byte ptr [rsp], 'Z'
+    ja I_not_uppercase
+    cmp byte ptr [rsp], 'A'
+    jb I_not_uppercase
+    sub byte ptr [rsp], 'A'
+    add byte ptr [rsp], 10
+    jmp I_digit_read
+I_not_uppercase:
+    cmp byte ptr [rsp], 'z'
+    ja I_int_reading_complete
+    cmp byte ptr [rsp], 'a'
+    jb I_int_reading_complete
+    sub byte ptr [rsp], 'a'
+    add byte ptr [rsp], 10
+I_digit_read:
+    cmp byte ptr [rsp], cl
+    jae I_int_reading_complete
+
+    mov rax, r13
+    imul rcx
+    mov r13, rax
+    movzx rax, byte ptr [rsp]
+    add r13, rax
+
+    mov rax, 0
+    mov rdi, 0
+    lea rsi, [rsp]
+    mov rdx, 1
+    push rcx
+    syscall
+    pop rcx
+
+    jmp I_read_int_loop
+I_int_reading_complete:
+    test r15, r15
+    jz I_int_not_negative
+    neg r13
+I_int_not_negative:
+    pop r11
+    pop r11
+    pop r12
+    pop r14
+    push r13
+    """
+
+
+    @fingerprint("BASE")
+    @define_instruction("N")
+    def base_write_int_in_base(self):
+        return f"""
+    pop rax
+    pop rcx
+
+    push r14
+    push r12
+    mov r13, rsp
+    mov rsi, 1
+    dec rsp
+    mov byte ptr [rsp], ' '
+
+    test rax, rax
+    jnz N_not_zero
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '0'
+    jmp N_number_built
+N_not_zero:
+    cqo
+    idiv rcx
+
+    test rax, rax
+    jz N_last_digit
+    test rdx, rdx
+    jge N_digit_positive
+    neg rdx
+N_digit_positive:
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    cmp rdx, '9'
+    jbe N_is_digit
+    add rdx, {ord('A') - ord('0') - 10}
+N_is_digit:
+    mov byte ptr [rsp], dl
+    jmp not_zero
+
+N_last_digit:
+    test rdx, rdx
+    jge N_last_digit_positive
+    neg rdx
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '-'
+    jmp N_number_built
+
+N_last_digit_positive:
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+
+N_number_built:
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, rsi
+    lea rsi, [rsp]
+    push r11
+    syscall
+    pop r11
+
+    mov rsp, r13
+    pop r12
+    pop r14
+    """
+
+
+    @fingerprint("BASE")
+    @define_instruction("O")
+    def base_write_octal_int(self):
+        return f"""
+    pop rax
+
+    push r14
+    push r12
+    mov r13, rsp
+    mov rsi, 1
+    dec rsp
+    mov byte ptr [rsp], ' '
+
+    test rax, rax
+    jnz O_not_zero
+    dec rsp
+    inc rsi
+    mov byte ptr [rsp], '0'
+    jmp O_number_built
+O_not_zero:
+    mov rdx, rax
+    and rdx, {0b111}
+    shr rax, 3
+
+    dec rsp
+    inc rsi
+    add rdx, '0'
+    mov byte ptr [rsp], dl
+
+    test rax, rax
+    jne O_not_zero
+O_number_built:
+    mov rax, 1
+    mov rdi, 1
+    mov rdx, rsi
+    lea rsi, [rsp]
+    push r11
+    syscall
+    pop r11
+
+    mov rsp, r13
+    pop r12
+    pop r14
+    """

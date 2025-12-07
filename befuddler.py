@@ -321,42 +321,7 @@ in_range_exit:
     ret
 
 nexti:
-    pop r14
-    test {REG_DIRECTION}, 4
-    jnz nexti_not_cardinal
-    mov rdx, [direction_deltas + {REG_DIRECTION}*8]
-    sub r14, 10
-    add r14, rdx
-    push r14
-    jmp nexti_exit
-nexti_not_cardinal:
-    mov rax, {REG_DIRECTION}
-    shr rax, 3
-    mov rsi, rax # dx
-    shr rax, 16
-    mov rdi, rax # dy
-    movsx rsi, si
-    movsx rdi, di
-    call get_line_char
-    add rdi, rax # y
-    add rsi, rdx # x
-
-    mov rax, rdi
-    cqo
-    mov rcx, {height}
-    idiv rcx
-    mov rdi, rdx
-
-    mov rax, rsi
-    cqo
-    mov rcx, {width}
-    idiv rcx
-    mov rsi, rdx
-    call set_line_char
-    sub r14, 15
-    push r14
-nexti_exit:
-    ret
+{nexti}
 
 print_error_and_exit:
     # assume error in rdi

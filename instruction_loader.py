@@ -1641,7 +1641,11 @@ y_1_exclude:
     pop r9
     test r9, r9
     jge push_stack_non_negative_input
-    neg r9
+push_stack_negative_input:
+    inc r9
+    push 0
+    test r9, r9
+    jnz push_stack_negative_input
 push_stack_non_negative_input:
     dec r9
     shl r9, 3
@@ -1722,6 +1726,46 @@ soss_done_removing:
     push qword ptr [rsi]
     jmp soss_done_removing
 soss_done_adding:
+    """
+
+
+    @define_instruction("u")
+    @b98
+    def stack_under_stack(self):
+        return f"""
+    pop r9
+
+    mov rsi, rsp
+    shl r9, 3
+    sub rsi, r9
+
+    cmp qword ptr [rbp], 0
+    je u_cant_pop_last_stack
+    mov r13, qword ptr -8[rbp]
+    mov r15, qword ptr [rbp]
+    test r9, r9
+    jl u_neg
+u_pos: # soss to toss
+    cmp rsp, rsi
+    je u_done
+    push qword ptr 8[rbp]
+    add rbp, 8
+    mov qword ptr -16[rbp], 0
+    mov qword ptr -8[rbp], r13
+    mov qword ptr [rbp], r15
+    jmp u_pos
+u_neg: # toss to soss
+    cmp rsp, rsi
+    je u_done
+    pop r9
+    mov qword ptr 8[rbp], r9
+    sub rbp, 8
+    mov qword ptr -8[rbp], r13
+    mov qword ptr [rbp], r15
+    jmp u_neg
+u_cant_pop_last_stack:
+    call reflect
+u_done:
     """
 
 

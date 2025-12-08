@@ -477,7 +477,9 @@ seed_in_rax:
     mov qword ptr [rand_seed], rax
 
     # save rsp
+    push 0 # signal bottom of stack stack
     mov rbp, rsp
+    push 0 # filler
 
     # reserve {STACK_ZERO_SIZE} zero bytes on the stack
     sub rsp, {STACK_ZERO_SIZE}
@@ -486,8 +488,8 @@ seed_in_rax:
     xor al, al
     rep stosb
 
-    # TODO - update to handle arb-dir
     xor {REG_DIRECTION}, {REG_DIRECTION}
+    xor r8, r8 # g/p offset
 
     jmp program_start
 {code_space}

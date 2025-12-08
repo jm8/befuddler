@@ -477,6 +477,13 @@ get_in_range:
         return f"""
     pop rsi # y
     pop rdi # x
+
+    mov r9, r8
+    shr r9, 32
+    add rsi, r9
+    mov r9d, r8d
+    add rdi, r9
+
     call in_range
     test rax, rax
     jne get_in_range
@@ -540,6 +547,12 @@ put_in_range:
         return f"""
     pop rsi # y
     pop rdi # x
+
+    mov r9, r8
+    shr r9, 32
+    add rsi, r9
+    mov r9d, r8d
+    add rdi, r9
 
     call in_range
     test rax, rax
@@ -624,7 +637,7 @@ string_mode_end:
     mov rdi, rax # line
     mov rsi, rdx # char
 
-    xor r8, r8 # space last seen
+    xor r9, r9 # space last seen
 
 string_mode_loop:
     call update_line_char
@@ -644,16 +657,16 @@ string_mode_loop:
 
     cmp cl, ' '
     je space_seen
-    xor r8, r8
+    xor r9, r9
     # otherwise, push the character value
 string_mode_push_char:
     movsx rdx, cl
     push rdx
     jmp string_mode_loop
 space_seen:
-    test r8, r8
+    test r9, r9
     jnz string_mode_loop
-    inc r8
+    inc r9
     jmp string_mode_push_char
 string_mode_end:
     # jump to correct position
@@ -973,8 +986,12 @@ jump_over_end:
     def iterate(self):
         return f"""
     pop r10 # number of times to iterate
-    xor r8, r8 # not skipping flag
+    xor r9, r9 # not skipping flag
     test r10, r10
+    jge k_valid_input
+    call reflect
+    jmp end_iterate
+k_valid_input:
     jnz run_iterate
     # Special case, zero acts as skip
     jmp handle_skip_b98
@@ -994,7 +1011,7 @@ iterate_bad_char_or_skips:
     mul rcx
     add rax, rsi
 
-    test r8, r8
+    test r9, r9
     jnz keep_skipping
 
     # load character from funge_space[rax]
@@ -1006,7 +1023,7 @@ iterate_bad_char_or_skips:
 
     cmp cl, '#'
     jne normal_iterate
-    inc r8 # set skipping flag
+    inc r9 # set skipping flag
     jmp run_iterate
 
 keep_skipping:
@@ -1020,14 +1037,14 @@ keep_skipping:
 normal_iterate:
     movzx rcx, cl
 
-    # NOTE - this section assumes r10, r8, and r11
+    # NOTE - this section assumes r10, r9, and r11
     # are untouched by whatever function this thing
     # calls...
-    mov r8, qword ptr [instruction_lut + rcx * 8]
+    mov r9, qword ptr [instruction_lut + rcx * 8]
 
     mov r11, r14
 iterate_again:
-    call r8
+    call r9
     dec r10
     jnz iterate_again
 
@@ -1203,8 +1220,13 @@ y_stack_size_positive:
     pop rdi
     cmp rdi, 20
     jle y_valid_input
-    lea rdi, error_bad_read
-    call print_error_and_exit
+    sub rdi, 20
+y_get_to_cell:
+    test rdi, rdi
+    jz y_1_exclude
+    pop rsi
+    dec rdi
+    jmp y_get_to_cell
 y_valid_input:
 
     # 20. a series of strings, each terminated by a null, the series terminated by an additional null, containing the environment variables. (env)
@@ -1244,6 +1266,7 @@ y_19_exclude:
     jne y_18_exclude
 y_18_include:
 
+    # TODO
     push rsi
 
     # 17. 1 cell containing the total number of stacks currently in use by the IP (size of stack stack) (ip)
@@ -1255,7 +1278,7 @@ y_18_exclude:
     jne y_17_exclude
 y_17_include:
 
-    # support for multiple stacks not yet available
+    # TODO
     push 1
 
     # 16. 1 cell containing current (hour * 256 * 256) + (minute * 256) + (second) (env)
@@ -1320,26 +1343,28 @@ y_15_include:
     #
     # TODO - The code must be updated for the 100 and 400 year rules by 2100 AD
 
-    mov rsi, 1970 # year
+    push r10
+    push r11
+
+    mov r11, 1970 # year
 y_keep_setting_year:
     mov r9, 365
-    mov r15, rsi
-    xor r8, r8 # is_leap_year
+    mov r15, r11
+    xor r10, r10 # is_leap_year
     and r15, 3
     test r15, r15
     jnz not_leap_year
     inc r9
-    mov r8, 1
+    mov r10, 1
 not_leap_year:
     cmp rax, r9
     jl y_year_set
-    inc rsi
+    inc r11
     sub rax, r9
     jmp y_keep_setting_year
 y_year_set:
-    sub rsi, 1900
-    shl rsi, 16
-    push rsi
+    sub r11, 1900
+    shl r11, 16
 
     mov rsi, 1 # month
 y_keep_setting_month:
@@ -1347,7 +1372,7 @@ y_keep_setting_month:
     cmp rsi, 2 # February
     jne y_not_february
     mov r9, 28
-    test r8, r8
+    test r10, r10
     jz y_month_length_set
     inc r9
     jmp y_month_length_set
@@ -1369,13 +1394,15 @@ y_month_length_set:
     sub rax, r9
     jmp y_keep_setting_month
 y_month_set:
-    pop r9
     shl rsi, 8
-    add r9, rsi
+    add r11, rsi
     inc rax
-    add r9, rax
+    add r11, rax
 
-    push r9
+    mov rsi, r11
+    pop r11
+    pop r10
+    push rsi
     
     # 14. 1 vector containing the greatest point which contains a non-space cell, relative to the least point (env)
 
@@ -1413,11 +1440,13 @@ y_13_exclude:
     jne y_12_exclude
 y_12_include:
 
-    # same as #10 since negative spaces not supported
     call get_line_char
 
-    push rax # line
+    mov rax, r8
+    shr rax, 32
+    mov edx, r8d
     push rdx # char
+    push rax # line
 
     # 11. 1 vector containing the Funge-Space delta of the current IP (ip)
 
@@ -1428,26 +1457,37 @@ y_12_exclude:
     jne y_11_exclude
 y_11_include:
 
-    cmp r14, {DIR_RIGHT}
+    test r12, 4
+    jnz y_11_not_cardinal
+    cmp r12, {DIR_RIGHT}
     jne y_ip_not_right
     push 1
     push 0
     jmp y_11_set
 y_ip_not_right:
-    cmp r14, {DIR_DOWN}
+    cmp r12, {DIR_DOWN}
     jne y_ip_left_or_up
     push 0
-    push -1
+    push 1
     jmp y_11_set
 y_ip_left_or_up:
-    cmp r14, {DIR_LEFT}
+    cmp r12, {DIR_LEFT}
     jne y_ip_up
     push -1
     push 0
     jmp y_11_set
 y_ip_up:
     push 0
-    push 1
+    push -1
+    jmp y_11_set
+y_11_not_cardinal:
+    mov rax, r12
+    shr rax, 3
+    movzx rdx, ax
+    push  rdx
+    shr rax, 16
+    movzx rax, ax
+    push rax
 y_11_set:
 
     # 10. 1 vector containing the Funge-Space position of the current IP (ip)
@@ -1461,8 +1501,8 @@ y_10_include:
 
     call get_line_char
     
-    push rax # line
     push rdx # char
+    push rax # line
 
     # 9. 1 cell containing a unique team number for the current IP (ip)
     #         Only significant for NetFunge, BeGlad, and the like.
@@ -1587,6 +1627,97 @@ y_1_include:
 
 y_1_exclude:
 
+    """
+
+
+    @define_instruction("{")
+    @b98
+    def push_stack(self):
+        return f"""
+    pop r9
+    test r9, r9
+    jge push_stack_non_negative_input
+    neg r9
+push_stack_non_negative_input:
+    dec r9
+    shl r9, 3
+    add r9, rsp
+
+    mov rsi, rsp
+
+    mov rax, qword ptr [r9]
+    mov r10, qword ptr -8[r9]
+    mov qword ptr [r9], rbp
+    mov qword ptr -8[r9], r8
+    lea rsp, -{STACK_ZERO_SIZE + 16}[r9]
+    mov rbp, r9
+
+    push rax
+    push rsi
+
+    call get_line_char
+    mov rdi, rax
+    mov rsi, rdx
+    call update_line_char
+    mov r8, rdi
+    shl r8, 32
+    mov esi, esi
+    or r8, rsi
+
+    pop rsi
+    pop rax
+
+    cmp r9, rsi
+    jl toss_took_soss
+    push rax
+    sub r9, 8
+    mov qword ptr [r9], 0
+
+keep_taking_soss:
+    cmp r9, rsi
+    jl toss_took_soss
+    push r10
+    sub r9, 8
+    mov r10, qword ptr [r9]
+    mov qword ptr [r9], 0
+    jmp keep_taking_soss
+toss_took_soss:
+    """
+
+
+    @define_instruction("}")
+    @b98
+    def pop_stack(self):
+        return f"""
+    pop r9
+
+    mov rsi, rsp
+    mov rdi, rsp
+    shl r9, 3
+    add rsi, r9
+
+    cmp qword ptr [rbp], 0
+    je cant_pop_last_stack
+    mov r8, qword ptr -8[rbp]
+    lea rsp, 8[rbp]
+    mov rbp, qword ptr [rbp]
+    jmp pop_stack_end
+cant_pop_last_stack:
+    call reflect
+    jmp soss_done_adding
+pop_stack_end:
+    test r9, r9
+    jge soss_done_removing
+    pop rax
+    add r9, 8
+    jmp pop_stack_end
+soss_done_removing:
+    cmp rsi, rdi
+    jle soss_done_adding
+    sub rsi, 8
+    push qword ptr [rsi]
+    jmp soss_done_removing
+soss_done_adding:
     """
 
 

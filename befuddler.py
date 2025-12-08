@@ -27,29 +27,29 @@ RESET = "\033[0m"
 
 FORM_FEED = b"\x0c"
 
-def parse_befunge(source: str, width: int, height: int):
+def parse_befunge(source: str, width: int, height: int, xoff: int, yoff: int):
     if b"\t" in source:
         print(f"{YELLOW}WARNING:{RESET} tab found in source")
-
-    lines = (source.replace(b"\r\n", b"\n")
+    
+    lines = [b""] * yoff
+    lines.extend(source.replace(b"\r\n", b"\n")
                    .replace(b"\r", b"\n")
                    .replace(FORM_FEED, b"")
-                   .split(b"\n"))
-    lines = lines[:height]
+                   .split(b"\n")[:height]) 
+    lines.extend([b""] * (height + yoff - len(lines)))
     result = [
-    [bytes([c]) for c in line[:width].ljust(width)]
+        [bytes([c]) for c in line[:width].ljust(width).rjust(width + xoff)]
         for line in lines
     ]
-    result.extend([[b" "] * width] * (height - len(result)))
     return result
 
 def compile_befunge(befunge: list[list[bytes]],
-                    width: int, height: int, b98: bool,
-                    debug: bool):
+                    width: int, height: int,
+                    xoff: int, yoff: int, b98: bool):
     instruction_functions = ""
 
     instruction_loader = InstructionLoader(width, height, b98)
-
+    
     defined_instructions = instruction_loader.defined_instructions
     instruction_names = instruction_loader.instruction_names
 
@@ -66,8 +66,11 @@ def compile_befunge(befunge: list[list[bytes]],
     code_space = ""
 
     for i in range(-2, height + 2):
-        for j in range(-2, width+ 2):
+        for j in range(-2, width + 2):
             if (i, j) == (0, 0):
+                code_space += f"""
+code_space_start:"""
+            if (i, j) == (yoff, xoff):
                 code_space += f"""
 program_start:"""
             if i < 0:
@@ -79,12 +82,7 @@ program_start:"""
             elif j >= width:
                 name = "right_edge"
             else:
-                name = instruction_names.get(ord(befunge[i][j]))
-                if debug:
-                    if name:
-                        print(f"{RESET}{befunge[i][j]}", end="")
-                    else:
-                        print(f"{RED}{befunge[i][j]}{RESET}", end="")
+                name = instruction_names.get(befunge[i][j][0])
             if name:
                 code_space += f"""
     call {name}"""
@@ -96,8 +94,6 @@ program_start:"""
     nop""" * 5
             code_space += f"""
     call nexti"""
-        if debug:
-            print()
 
     funge_space = ""
     for y, row in enumerate(befunge):
@@ -354,7 +350,7 @@ get_line_char:
     # put (line, char) in (rax, rdx)
     # clobbers rcx
     mov rax, r14
-    sub rax, OFFSET program_start
+    sub rax, OFFSET code_space_start
     mov rcx, 10
     xor rdx, rdx
     div rcx
@@ -372,7 +368,7 @@ set_line_char:
     imul rax, {width + 4}
     add rax, rsi
     imul rax, 10
-    add rax, OFFSET program_start
+    add rax, OFFSET code_space_start
     add rax, 5
     mov r14, rax
     ret
@@ -496,6 +492,10 @@ seed_in_rax:
 
     xor {REG_DIRECTION}, {REG_DIRECTION}
     xor r8, r8 # g/p offset
+    mov r8d, {yoff}
+    shl r8, 32
+    mov r15d, {xoff}
+    or r8, r15
 
     jmp program_start
 {code_space}
@@ -522,9 +522,12 @@ def main():
         description="Befunge compiler"
     )
     parser.add_argument("source", type=Path)
-    parser.add_argument("--debug", action="store_true")
     parser.add_argument("--width", type=int, default=DEFAULT_WIDTH)
     parser.add_argument("--height", type=int, default=DEFAULT_HEIGHT)
+    parser.add_argument("--xoff", type=int, default=0,
+                        help="x offset of funge space start")
+    parser.add_argument("--yoff", type=int, default=0,
+                        help="y offset of funge space start")
     parser.add_argument("--fit_size", action="store_true",
                         help="set size to fit source")
     parser.add_argument("--b98", action="store_true",
@@ -539,9 +542,12 @@ def main():
         width = args.width
         height = args.height
 
+    xoff = args.xoff
+    yoff = args.yoff
 
-    parsed = parse_befunge(args.source.read_bytes(), width, height)
-    compiled = compile_befunge(parsed, width, height, args.b98, args.debug)
+    parsed = parse_befunge(args.source.read_bytes(), width, height, xoff, yoff)
+    compiled = compile_befunge(parsed, width + xoff, height + yoff,
+                               xoff, yoff, args.b98)
     asm = args.source.with_suffix(".s")
     exe = args.source.with_name(args.source.stem)
     asm.write_text(compiled)
@@ -561,3 +567,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

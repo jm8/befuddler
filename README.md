@@ -5,7 +5,7 @@ Befunge-93 compiler used in the BuckeyeCTF 2025 challenges `rev / befuddled` and
 ## Usage
 
 ```sh
-./befuddler.py [--width WIDTH] [--height HEIGHT] [--fit_size] [--b98] source
+./befuddler.py [--width WIDTH] [--height HEIGHT] [--xoff XOFF] [--yoff YOFF] [--fit_size] [--b98] source
 ```
 
 The standard compiler is the Befunge-93 compiler, however some limited Befunge-98 is supported (WIP).

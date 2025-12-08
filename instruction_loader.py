@@ -455,6 +455,12 @@ vertical_if_done:
         return f"""
     pop rsi # y
     pop rdi # x
+    mov r9, r8
+    shr r9, 32
+    add rsi, r9
+    mov r9d, r8d
+    add rdi, r9
+
     call in_range
     test rax, rax
     jne get_in_range
@@ -477,7 +483,6 @@ get_in_range:
         return f"""
     pop rsi # y
     pop rdi # x
-
     mov r9, r8
     shr r9, 32
     add rsi, r9
@@ -507,6 +512,11 @@ skip_g:
         return f"""
     pop rsi # y
     pop rdi # x
+    mov r9, r8
+    shr r9, 32
+    add rsi, r9
+    mov r9d, r8d
+    add rdi, r9
 
     call in_range
     test rax, rax
@@ -531,7 +541,7 @@ put_in_range:
 
     add rax, rdi
     imul rax, 10
-    lea rcx, [program_start + rax]
+    lea rcx, [code_space_start + rax]
 
     lea r15, [rcx + 5]
     sub r9, r15
@@ -547,7 +557,6 @@ put_in_range:
         return f"""
     pop rsi # y
     pop rdi # x
-
     mov r9, r8
     shr r9, 32
     add rsi, r9
@@ -577,7 +586,7 @@ put_in_range:
 
     add rax, rdi
     imul rax, 10
-    lea rcx, [program_start + rax]
+    lea rcx, [code_space_start + rax]
 
     lea r15, [rcx + 5]
     sub r9, r15
@@ -592,7 +601,7 @@ skip_p:
     @b93
     def string_mode_b93(self):
         return f"""
-    # compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - code_space_start) / 10
     call get_line_char
 
     mov rdi, rax # line
@@ -631,7 +640,7 @@ string_mode_end:
     @b98
     def string_mode_b98(self):
         return f"""
-    # compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - code_space_start) / 10
     call get_line_char
 
     mov rdi, rax # line
@@ -943,7 +952,7 @@ compare_end:
     @b98
     def jump_over(self):
         return f"""
-    # compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - code_space_start) / 10
     call get_line_char
 
     mov rdi, rax # line
@@ -1076,7 +1085,7 @@ end_iterate:
     @b98
     def push_char(self):
         return f"""
-    # compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - code_space_start) / 10
     call get_line_char
 
     mov rdi, rax # line
@@ -1106,7 +1115,7 @@ end_iterate:
     @b98
     def store_char(self):
         return f"""
-    # compute cell index: (r14 - program_start) / 10
+    # compute cell index: (r14 - code_space_start) / 10
     call get_line_char
 
     mov rdi, rax # line
